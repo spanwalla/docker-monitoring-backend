@@ -53,7 +53,7 @@ func New(url string, opts ...Option) (*Postgres, error) {
 			return nil, fmt.Errorf("postgres - NewPostgres - pgxpool.NewWithConfig: %w", err)
 		}
 
-		if err = pg.Pool.Ping(context.Background()); err != nil {
+		if err = pg.Pool.Ping(context.Background()); err == nil {
 			break
 		}
 
