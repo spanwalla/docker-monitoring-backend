@@ -14,3 +14,6 @@ postgres:
 rabbitmq:
   rpc_server_exchange: 'rpc_server'
   rpc_client_exchange: 'rpc_client'
+
+jwt:
+  token_ttl: 24h
