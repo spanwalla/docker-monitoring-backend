@@ -1,0 +1,187 @@
+basePath: /
+definitions:
+  echo.HTTPError:
+    properties:
+      message: {}
+    type: object
+  github_com_spanwalla_docker-monitoring-backend_internal_service.PingResult:
+    properties:
+      id:
+        type: string
+      ip:
+        type: string
+      latency_ms:
+        type: integer
+      timestamp:
+        type: string
+    required:
+    - id
+    - ip
+    - latency_ms
+    - timestamp
+    type: object
+  internal_controller_http_v1.loginInput:
+    properties:
+      name:
+        maxLength: 32
+        minLength: 4
+        type: string
+      password:
+        type: string
+    required:
+    - name
+    - password
+    type: object
+  internal_controller_http_v1.pingerRoutes:
+    type: object
+  internal_controller_http_v1.registerInput:
+    properties:
+      name:
+        maxLength: 32
+        minLength: 4
+        type: string
+      password:
+        type: string
+    required:
+    - name
+    - password
+    type: object
+  internal_controller_http_v1.reportRoutes:
+    type: object
+  internal_controller_http_v1.storeReportInput:
+    properties:
+      report:
+        items:
+          $ref: '#/definitions/github_com_spanwalla_docker-monitoring-backend_internal_service.PingResult'
+        type: array
+    required:
+    - report
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a service for storing and showing docker container's reports.
+  title: Docker Monitoring Service
+  version: "1.0"
+paths:
+  /api/v1/pingers/login:
+    post:
+      consumes:
+      - application/json
+      description: Login
+      parameters:
+      - description: input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.loginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_controller_http_v1.pingerRoutes'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Login
+      tags:
+      - pinger
+  /api/v1/pingers/register:
+    post:
+      consumes:
+      - application/json
+      description: Register pinger
+      parameters:
+      - description: input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.registerInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_controller_http_v1.pingerRoutes'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Register
+      tags:
+      - pinger
+  /api/v1/reports:
+    get:
+      description: Get latest report by every pinger ever exists in database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_controller_http_v1.reportRoutes'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Get reports
+      tags:
+      - reports
+    post:
+      consumes:
+      - application/json
+      description: Store pinger's report to database
+      parameters:
+      - description: input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.storeReportInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      security:
+      - JWT: []
+      summary: Store report
+      tags:
+      - reports
+securityDefinitions:
+  JWT:
+    description: JSON Web Token
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS pingers;
+DROP TABLE IF EXISTS reports;

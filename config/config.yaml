@@ -1,0 +1,16 @@
+app:
+  name: 'docker-monitoring-backend'
+  version: '1.0.0'
+
+http:
+  port: '8080'
+
+logger:
+  level: 'debug'
+
+postgres:
+  pool_max: 5
+
+rabbitmq:
+  rpc_server_exchange: 'rpc_server'
+  rpc_client_exchange: 'rpc_client'
