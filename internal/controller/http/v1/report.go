@@ -51,7 +51,7 @@ type storeReportInput struct {
 // @Accept json
 // @Produce json
 // @Param input body storeReportInput true "input"
-// @Success 200
+// @Success 202
 // @Failure 400 {object} echo.HTTPError
 // @Failure 500 {object} echo.HTTPError
 // @Security JWT
@@ -68,7 +68,7 @@ func (r *reportRoutes) storeReport(c echo.Context) error {
 		return err
 	}
 
-	err := r.reportService.Store(c.Request().Context(), service.ReportStoreInput{
+	err := r.reportService.PublishToQueue(c.Request().Context(), service.ReportStoreInput{
 		PingerId: c.Get(pingerIdCtx).(int),
 		Report:   input.Report,
 	})
@@ -77,7 +77,7 @@ func (r *reportRoutes) storeReport(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": "success",
+	return c.JSON(http.StatusAccepted, map[string]string{
+		"message": "accepted",
 	})
 }

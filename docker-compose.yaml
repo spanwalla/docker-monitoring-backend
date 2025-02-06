@@ -4,18 +4,20 @@ networks:
 
 volumes:
   postgres_data:
+  rabbitmq_data:
 
 services:
   app:
     build: .
     environment:
       PG_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
-      RMQ_URL: rabbit://
+      RMQ_URL: amqp://${RMQ_USER}:${RMQ_PASSWORD}@rabbitmq:${RMQ_PORT}/
       CONFIG_PATH: ${CONFIG_PATH}
     env_file:
       - .env
     depends_on:
       - postgres
+      - rabbitmq
     ports:
       - "8080:8080"
     volumes:
@@ -37,3 +39,16 @@ services:
       - net
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
+
+  rabbitmq:
+    image: rabbitmq:4.0.5-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RMQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - net
+    ports:
+      - ${RMQ_PORT}:${RMQ_PORT}
+      - "15672:15672"

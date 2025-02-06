@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/jackc/pgtype"
 	log "github.com/sirupsen/logrus"
+	"github.com/spanwalla/docker-monitoring-backend/internal/broker"
 	"github.com/spanwalla/docker-monitoring-backend/internal/entity"
 	"github.com/spanwalla/docker-monitoring-backend/internal/repository"
 )
@@ -12,19 +13,20 @@ import (
 // ReportService -.
 type ReportService struct {
 	reportRepo repository.Report
+	publisher  broker.Publisher
 }
 
 // NewReportService -.
-func NewReportService(reportRepo repository.Report) *ReportService {
-	return &ReportService{reportRepo}
+func NewReportService(reportRepo repository.Report, publisher broker.Publisher) *ReportService {
+	return &ReportService{reportRepo, publisher}
 }
 
-// Store -.
-func (s *ReportService) Store(ctx context.Context, input ReportStoreInput) error {
+// PublishToQueue -.
+func (s *ReportService) PublishToQueue(ctx context.Context, input ReportStoreInput) error {
 	// Convert []PingResult to json
 	jsonBytes, err := json.Marshal(input.Report)
 	if err != nil {
-		log.Errorf("ReportService.Store - json.Marshal: %v", err)
+		log.Errorf("ReportService.PublishToQueue - json.Marshal: %v", err)
 		return ErrCannotConvertJson
 	}
 
@@ -32,7 +34,7 @@ func (s *ReportService) Store(ctx context.Context, input ReportStoreInput) error
 	var content pgtype.JSONB
 	err = content.Set(jsonBytes)
 	if err != nil {
-		log.Errorf("ReportService.Store - json.Set: %v", err)
+		log.Errorf("ReportService.PublishToQueue - json.Set: %v", err)
 		return ErrCannotConvertJson
 	}
 
@@ -41,12 +43,37 @@ func (s *ReportService) Store(ctx context.Context, input ReportStoreInput) error
 		Content:  content,
 	}
 
-	err = s.reportRepo.CreateReport(ctx, report)
+	reportBytes, err := json.Marshal(report)
 	if err != nil {
+		log.Errorf("ReportService.PublishToQueue - json.Marshal: %v", err)
+		return ErrCannotConvertJson
+	}
+
+	err = s.publisher.Publish(reportBytes)
+	if err != nil {
+		log.Errorf("ReportService.PublishToQueue - Publish: %v", err)
+		log.Infof("Using direct way (without message broker).")
+		err = s.Store(ctx, reportBytes)
+		if err != nil {
+			log.Errorf("ReportService.PublishToQueue - Store: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+// Store -.
+func (s *ReportService) Store(ctx context.Context, deliveryBody []byte) error {
+	report := entity.Report{}
+	if err := json.Unmarshal(deliveryBody, &report); err != nil {
+		log.Errorf("ReportService.Store - json.Unmarshal: %v", err)
+		return ErrCannotConvertJson
+	}
+
+	if err := s.reportRepo.CreateReport(ctx, report); err != nil {
 		log.Errorf("ReportService.Store - s.reportRepo.CreateReport: %v", err)
 		return ErrCannotStoreReport
 	}
-
 	return nil
 }
 

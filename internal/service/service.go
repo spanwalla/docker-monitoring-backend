@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/jackc/pgtype"
+	"github.com/spanwalla/docker-monitoring-backend/internal/broker"
 	"github.com/spanwalla/docker-monitoring-backend/internal/repository"
 	"github.com/spanwalla/docker-monitoring-backend/pkg/hasher"
 	"time"
@@ -55,7 +56,8 @@ type ReportOutput struct {
 
 // Report -.
 type Report interface {
-	Store(ctx context.Context, input ReportStoreInput) error
+	PublishToQueue(ctx context.Context, input ReportStoreInput) error
+	Store(ctx context.Context, deliveryBody []byte) error
 	GetActualReports(ctx context.Context) ([]ReportOutput, error)
 }
 
@@ -67,16 +69,17 @@ type Services struct {
 
 // Dependencies -.
 type Dependencies struct {
-	Repos    *repository.Repositories
-	Hasher   hasher.PasswordHasher
-	SignKey  string
-	TokenTTL time.Duration
+	Repos     *repository.Repositories
+	Hasher    hasher.PasswordHasher
+	SignKey   string
+	TokenTTL  time.Duration
+	Publisher broker.Publisher
 }
 
 // NewServices -.
 func NewServices(deps Dependencies) *Services {
 	return &Services{
 		Pinger: NewPingerService(deps.Repos.Pinger, deps.Hasher, deps.SignKey, deps.TokenTTL),
-		Report: NewReportService(deps.Repos.Report),
+		Report: NewReportService(deps.Repos.Report, deps.Publisher),
 	}
 }

@@ -12,8 +12,7 @@ postgres:
   pool_max: 5
 
 rabbitmq:
-  rpc_server_exchange: 'rpc_server'
-  rpc_client_exchange: 'rpc_client'
+  report_queue: 'report'
 
 jwt:
   token_ttl: 24h

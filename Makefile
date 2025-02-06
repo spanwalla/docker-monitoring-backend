@@ -26,7 +26,7 @@ migrate-down: ### migration down
 .PHONY: migrate-down
 
 swag: ### generate swagger docs
-	swag init -g internal/app/app.go --parseInternal --parseDependency
+	swag init -g 'internal/app/app.go' --parseInternal --parseDependency
 .PHONY: swag
 
 test: ### run test
@@ -34,8 +34,9 @@ test: ### run test
 .PHONY: test
 
 mockgen: ### generate mock
-	mockgen -source=internal/service/service.go       -destination=internal/service/mocks/mock.go    -package=service_mocks
-	mockgen -source=internal/repository/repository.go -destination=internal/repository/mocks/mock.go -package=repository_mocks
+	mockgen -source='internal/service/service.go'       -destination='internal/service/mocks/mock.go'    -package=service_mocks
+	mockgen -source='internal/repository/repository.go' -destination='internal/repository/mocks/mock.go' -package=repository_mocks
+	mockgen -source='internal/broker/broker.go'         -destination='internal/broker/mocks/mock.go'     -package=broker_mocks
 .PHONY: mockgen
 
 bin-deps: ### install binary dependencies

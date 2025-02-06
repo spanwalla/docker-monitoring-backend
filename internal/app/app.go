@@ -3,15 +3,18 @@ package app
 import (
 	"fmt"
 	"github.com/labstack/echo/v4"
+	amqp "github.com/rabbitmq/amqp091-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spanwalla/docker-monitoring-backend/config"
 	_ "github.com/spanwalla/docker-monitoring-backend/docs"
+	"github.com/spanwalla/docker-monitoring-backend/internal/broker"
 	v1 "github.com/spanwalla/docker-monitoring-backend/internal/controller/http/v1"
 	"github.com/spanwalla/docker-monitoring-backend/internal/repository"
 	"github.com/spanwalla/docker-monitoring-backend/internal/service"
 	"github.com/spanwalla/docker-monitoring-backend/pkg/hasher"
 	"github.com/spanwalla/docker-monitoring-backend/pkg/httpserver"
 	"github.com/spanwalla/docker-monitoring-backend/pkg/postgres"
+	"github.com/spanwalla/docker-monitoring-backend/pkg/rabbitmq"
 	"github.com/spanwalla/docker-monitoring-backend/pkg/validator"
 	"os"
 	"os/signal"
@@ -55,13 +58,40 @@ func Run() {
 	}
 	defer pg.Close()
 
+	// RabbitMQ
+	rmq, err := rabbitmq.New(cfg.RMQ.URL)
+	if err != nil {
+		log.Fatalf("app - Run - rabbitmq.New: %v", err)
+	}
+	defer func() {
+		if err = rmq.Close(); err != nil {
+			log.Fatalf("app - Run - rmq.Close: %v", err)
+		}
+	}()
+
+	pubChannel, err := rmq.Channel()
+	if err != nil {
+		log.Fatalf("app - Run - rmq.Channel (publisher): %v", err)
+	}
+	defer func() {
+		if err = pubChannel.Close(); err != nil {
+			log.Fatalf("app - Run - pubChannel.Close: %v", err)
+		}
+	}()
+
+	pub, err := broker.NewRabbitMQPublisher(pubChannel, cfg.RMQ.ReportQueue)
+	if err != nil {
+		log.Fatal(fmt.Errorf("app - Run - broker.NewRabbitMQPublisher: %w", err))
+	}
+
 	// Services and repos
 	log.Info("Initializing services and repos...")
 	services := service.NewServices(service.Dependencies{
-		Repos:    repository.NewRepositories(pg),
-		Hasher:   hasher.NewSHA1Hasher(cfg.Hasher.Salt),
-		SignKey:  cfg.JWT.SignKey,
-		TokenTTL: cfg.JWT.TokenTTL,
+		Repos:     repository.NewRepositories(pg),
+		Hasher:    hasher.NewSHA1Hasher(cfg.Hasher.Salt),
+		SignKey:   cfg.JWT.SignKey,
+		TokenTTL:  cfg.JWT.TokenTTL,
+		Publisher: pub,
 	})
 
 	// Echo handler
@@ -70,17 +100,33 @@ func Run() {
 	handler.Validator = validator.NewCustomValidator()
 	v1.ConfigureRouter(handler, services)
 
-	// RabbitMQ RPC Server
-	// rmqRouter := amqrpc.NewRouter()
-	// rmqServer, err := server.New(cfg.RMQ.URL, cfg.RMQ.ServerExchange, rmqRouter)
-	// if err != nil {
-	//	log.Fatalf("app - Run - rmqServer - server.New: %v", err)
-	// }
-
 	// HTTP Server
 	log.Info("Starting HTTP server...")
 	log.Debugf("Server port: %s", cfg.HTTP.Port)
 	httpServer := httpserver.New(handler, httpserver.Port(cfg.HTTP.Port))
+
+	// Report consumer
+	consChannel, err := rmq.Channel()
+	if err != nil {
+		log.Fatalf("app - Run - rmq.Channel (consumer): %v", err)
+	}
+	defer func(consChannel *amqp.Channel) {
+		err = consChannel.Close()
+		if err != nil {
+			log.Fatalf("app - Run - consChannel.Close: %v", err)
+		}
+	}(consChannel)
+
+	reportConsumer, err := broker.NewRabbitMQConsumer(consChannel, cfg.RMQ.ReportQueue, cfg.RMQ.ReportQueue, services.Store)
+	if err != nil {
+		log.Fatalf("app - Run - broker.NewRabbitMQConsumer: %v", err)
+	}
+	consumerErrChan := make(chan error, 1)
+	go func() {
+		if err = reportConsumer.Start(); err != nil {
+			consumerErrChan <- fmt.Errorf("app - Run - reportConsumer.Start: %w", err)
+		}
+	}()
 
 	// Waiting signal
 	log.Info("Configuring graceful shutdown...")
@@ -92,8 +138,8 @@ func Run() {
 		log.Info("app - Run - signal: " + s.String())
 	case err = <-httpServer.Notify():
 		log.Errorf("app - Run - httpServer.Notify: %v", err)
-		// case err = <-rmqServer.Notify():
-		//	log.Errorf("app - Run - rmqServer.Notify: %v", err)
+	case err = <-consumerErrChan:
+		log.Errorf("app - Run - RabbitMQConsumer: %v", err)
 	}
 
 	// Graceful shutdown
@@ -104,8 +150,8 @@ func Run() {
 		log.Errorf("app - Run - httpServer.Shutdown: %v", err)
 	}
 
-	// err = rmqServer.Shutdown()
-	// if err != nil {
-	//	log.Errorf("app - Run - rmqServer.Shutdown: %v", err)
-	// }
+	err = reportConsumer.Stop()
+	if err != nil {
+		log.Errorf("app - Run - reportConsumer.Stop: %v", err)
+	}
 }

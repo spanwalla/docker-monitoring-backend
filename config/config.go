@@ -42,9 +42,8 @@ type (
 
 	// RMQ -.
 	RMQ struct {
-		ServerExchange string `env-required:"true" yaml:"rpc_server_exchange" env:"RMQ_RPC_SERVER"`
-		ClientExchange string `env-required:"true" yaml:"rpc_client_exchange" env:"RMQ_RPC_CLIENT"`
-		URL            string `env-required:"true" env:"RMQ_URL"`
+		ReportQueue string `env-required:"true" yaml:"report_queue" env:"RMQ_REPORT_QUEUE"`
+		URL         string `env-required:"true" env:"RMQ_URL"`
 	}
 
 	// JWT -.
