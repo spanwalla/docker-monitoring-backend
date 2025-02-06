@@ -55,20 +55,21 @@ func (s *PingerService) CreatePinger(ctx context.Context, input PingerCreateInpu
 }
 
 // GenerateToken -.
-func (s *PingerService) GenerateToken(ctx context.Context, input PingerGenerateTokenInput) (string, error) {
+func (s *PingerService) GenerateToken(ctx context.Context, input PingerGenerateTokenInput) (string, time.Time, error) {
 	pinger, err := s.pingerRepo.GetPingerByNameAndPassword(ctx, input.Name, s.passwordHasher.Hash(input.Password))
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return "", ErrPingerNotFound
+			return "", time.Now(), ErrPingerNotFound
 		}
 		log.Errorf("PingerService.GenerateToken - s.pingerRepo.GetPingerByNameAndPassword: %v", err)
-		return "", ErrCannotGetPinger
+		return "", time.Now(), ErrCannotGetPinger
 	}
 
 	// Generate JWT
+	expiresAt := time.Now().Add(s.tokenTTL)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(s.tokenTTL).Unix(),
+			ExpiresAt: expiresAt.Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
 		PingerId: pinger.Id,
@@ -78,10 +79,10 @@ func (s *PingerService) GenerateToken(ctx context.Context, input PingerGenerateT
 	tokenString, err := token.SignedString([]byte(s.signKey))
 	if err != nil {
 		log.Errorf("PingerService.GenerateToken - token.SignedString: %v", err)
-		return "", ErrCannotSignToken
+		return "", time.Now(), ErrCannotSignToken
 	}
 
-	return tokenString, nil
+	return tokenString, expiresAt, nil
 }
 
 // ParseToken -.

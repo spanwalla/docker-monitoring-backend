@@ -25,7 +25,7 @@ type PingerGenerateTokenInput struct {
 // Pinger -.
 type Pinger interface {
 	CreatePinger(ctx context.Context, input PingerCreateInput) (int, error)
-	GenerateToken(ctx context.Context, input PingerGenerateTokenInput) (string, error)
+	GenerateToken(ctx context.Context, input PingerGenerateTokenInput) (string, time.Time, error)
 	ParseToken(token string) (int, error)
 }
 

@@ -49,7 +49,7 @@ func (r *pingerRoutes) login(c echo.Context) error {
 		return err
 	}
 
-	token, err := r.pingerService.GenerateToken(c.Request().Context(), service.PingerGenerateTokenInput{
+	token, expiresAt, err := r.pingerService.GenerateToken(c.Request().Context(), service.PingerGenerateTokenInput{
 		Name:     input.Name,
 		Password: input.Password,
 	})
@@ -63,11 +63,13 @@ func (r *pingerRoutes) login(c echo.Context) error {
 	}
 
 	type response struct {
-		Token string `json:"token"`
+		Token     string `json:"token"`
+		ExpiresAt int64  `json:"expires_at"`
 	}
 
 	return c.JSON(http.StatusOK, response{
-		Token: token,
+		Token:     token,
+		ExpiresAt: expiresAt.Unix(),
 	})
 }
 
