@@ -12,12 +12,26 @@ definitions:
         type: string
       latency_ms:
         type: integer
+      state:
+        enum:
+        - created
+        - restarting
+        - running
+        - removing
+        - paused
+        - exited
+        - dead
+        type: string
+      status:
+        type: string
       timestamp:
         type: string
     required:
     - id
     - ip
     - latency_ms
+    - state
+    - status
     - timestamp
     type: object
   internal_controller_http_v1.loginInput:

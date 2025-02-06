@@ -40,6 +40,8 @@ type PingResult struct {
 	ContainerId string    `json:"id" validate:"required,alphanum"`
 	Ip          string    `json:"ip" validate:"required,ipv4"`
 	Latency     int       `json:"latency_ms" validate:"required,number"`
+	Status      string    `json:"status" validate:"required"`
+	State       string    `json:"state" validate:"required,oneof=created restarting running removing paused exited dead"`
 	Timestamp   time.Time `json:"timestamp" validate:"required,datetime"`
 }
 

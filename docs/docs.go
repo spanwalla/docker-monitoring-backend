@@ -205,6 +205,8 @@ const docTemplate = `{
                 "id",
                 "ip",
                 "latency_ms",
+                "state",
+                "status",
                 "timestamp"
             ],
             "properties": {
@@ -216,6 +218,21 @@ const docTemplate = `{
                 },
                 "latency_ms": {
                     "type": "integer"
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "created",
+                        "restarting",
+                        "running",
+                        "removing",
+                        "paused",
+                        "exited",
+                        "dead"
+                    ]
+                },
+                "status": {
+                    "type": "string"
                 },
                 "timestamp": {
                     "type": "string"
