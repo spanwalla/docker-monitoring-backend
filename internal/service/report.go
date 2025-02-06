@@ -52,12 +52,7 @@ func (s *ReportService) PublishToQueue(ctx context.Context, input ReportStoreInp
 	err = s.publisher.Publish(reportBytes)
 	if err != nil {
 		log.Errorf("ReportService.PublishToQueue - Publish: %v", err)
-		log.Infof("Using direct way (without message broker).")
-		err = s.Store(ctx, reportBytes)
-		if err != nil {
-			log.Errorf("ReportService.PublishToQueue - Store: %v", err)
-			return err
-		}
+		return ErrCannotStoreReport
 	}
 	return nil
 }
