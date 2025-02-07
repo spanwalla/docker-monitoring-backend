@@ -12,6 +12,7 @@ import (
 
 // ConfigureRouter -.
 func ConfigureRouter(handler *echo.Echo, services *service.Services) {
+	handler.Use(middleware.CORS())
 	handler.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: `{"time":"${time_rfc3339_nano}", "method":"${method}","uri":"${uri}", "status":${status},"error":"${error}"}` + "\n",
 		Output: setLogsFile(),

@@ -23,7 +23,7 @@ func newReportRoutes(g *echo.Group, reportService service.Report, authMiddleware
 // @Description Get latest report by every pinger ever exists in database
 // @Tags reports
 // @Produce json
-// @Success 200 {object} v1.reportRoutes.getReports.response
+// @Success 200 {object} []service.ReportOutput
 // @Failure 400 {object} echo.HTTPError
 // @Failure 500 {object} echo.HTTPError
 // @Router /api/v1/reports [get]
@@ -34,11 +34,7 @@ func (r *reportRoutes) getReports(c echo.Context) error {
 		return err
 	}
 
-	type response struct {
-		Reports []service.ReportOutput `json:"reports"`
-	}
-
-	return c.JSON(http.StatusOK, response{reports})
+	return c.JSON(http.StatusOK, reports)
 }
 
 type storeReportInput struct {

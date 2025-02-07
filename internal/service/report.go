@@ -22,7 +22,7 @@ func NewReportService(reportRepo repository.Report, publisher broker.Publisher) 
 }
 
 // PublishToQueue -.
-func (s *ReportService) PublishToQueue(ctx context.Context, input ReportStoreInput) error {
+func (s *ReportService) PublishToQueue(_ context.Context, input ReportStoreInput) error {
 	// Convert []PingResult to json
 	jsonBytes, err := json.Marshal(input.Report)
 	if err != nil {

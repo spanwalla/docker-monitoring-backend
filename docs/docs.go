@@ -127,7 +127,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controller_http_v1.reportRoutes"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_spanwalla_docker-monitoring-backend_internal_service.ReportOutput"
+                            }
                         }
                     },
                     "400": {
@@ -239,6 +242,23 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_spanwalla_docker-monitoring-backend_internal_service.ReportOutput": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "$ref": "#/definitions/pgtype.JSONB"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "pinger_name": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_controller_http_v1.loginInput": {
             "type": "object",
             "required": [
@@ -276,9 +296,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_controller_http_v1.reportRoutes": {
-            "type": "object"
-        },
         "internal_controller_http_v1.storeReportInput": {
             "type": "object",
             "required": [
@@ -292,6 +309,33 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "pgtype.JSONB": {
+            "type": "object",
+            "properties": {
+                "bytes": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "status": {
+                    "$ref": "#/definitions/pgtype.Status"
+                }
+            }
+        },
+        "pgtype.Status": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "Undefined",
+                "Null",
+                "Present"
+            ]
         }
     },
     "securityDefinitions": {
